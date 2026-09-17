@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full bg-slate-50">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedAssist AI - Asistente Médico & Optimizador Clínico</title>
+
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        medical: {
+                            50: '#f0f7ff',
+                            100: '#e0effe',
+                            500: '#0284c7',
+                            600: '#0369a1',
+                            700: '#075985',
+                            800: '#0c4a6e',
+                            900: '#0f3d59',
+                        }
+                    },
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        mono: ['Fira Code', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500;600&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; height: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: #f1f5f9; }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: #94a3b8; }
+        .drop-zone--over { border-color: #0284c7; background-color: #f0f7ff; }
+        .code-output { font-family: 'Fira Code', monospace; }
+    </style>
+</head>
+<body class="h-full bg-slate-100 text-slate-800 flex flex-col overflow-hidden">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-slate-900 text-white border-b border-slate-800 shadow-lg flex-shrink-0 z-30">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <!-- Logo & Title -->
+                <div class="flex items-center space-x-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-sky-500 to-indigo-600 flex items-center justify-center text-white shadow-md shadow-sky-500/20">
+                        <i class="fa-solid fa-stethoscope text-xl"></i>
+                    </div>
+                    <div>
+                        <h1 class="font-bold text-lg leading-tight tracking-tight flex items-center gap-2">
+                            MedAssist <span class="text-xs bg-sky-500/20 text-sky-300 font-semibold px-2 py-0.5 rounded-full border border-sky-500/30">AI Pro</span>
+                        </h1>
+                        <p class="text-xs text-slate-400">Asistente Personal de Consulta Externa & Optimizador Clínico</p>
+                    </div>
+                </div>
+
+                <!-- API Key Status / Global Actions -->
+                <div class="flex items-center space-x-3 text-xs">
+                    <div class="hidden md:flex items-center space-x-2 bg-slate-800 border border-slate-700 px-3 py-1.5 rounded-lg text-slate-300">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Motor: <strong>Gemini 3 Flash</strong></span>
+                    </div>
+                    <button onclick="toggleModal('settingsModal')" class="bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white px-3 py-1.5 rounded-lg transition border border-slate-700 flex items-center gap-1.5">
+                        <i class="fa-solid fa-gear"></i>
+                        <span class="hidden sm:inline">Configuración</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main App Container -->
+    <div class="flex-1 flex flex-col md:flex-row overflow-hidden max-w-7xl w-full mx-auto p-2 sm:p-4 gap-4">
+
+        <!-- Sidebar Navigation Tabs -->
+        <nav class="flex md:flex-col bg-white border border-slate-200 rounded-2xl p-1.5 shadow-sm md:w-64 flex-shrink-0 gap-1 overflow-x-auto custom-scrollbar">
+            <button onclick="switchTab('medsTab')" id="btn-medsTab" class="tab-btn active w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition text-left text-sky-700 bg-sky-50 border border-sky-100 shadow-sm">
+                <i class="fa-solid fa-pills text-lg w-5 text-center text-sky-600"></i>
+                <span class="whitespace-nowrap">Optimizador de Prescripciones</span>
+            </button>
+
+            <button onclick="switchTab('paraclinicalsTab')" id="btn-paraclinicalsTab" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                <i class="fa-solid fa-heart-pulse text-lg w-5 text-center text-emerald-500"></i>
+                <span class="whitespace-nowrap">EKG y Paraclínicos</span>
+            </button>
+
+            <button onclick="switchTab('cie10Tab')" id="btn-cie10Tab" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                <i class="fa-solid fa-magnifying-glass-chart text-lg w-5 text-center text-indigo-500"></i>
+                <span class="whitespace-nowrap">Buscador CIE-10</span>
+            </button>
+
+            <button onclick="switchTab('interactionsTab')" id="btn-interactionsTab" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                <i class="fa-solid fa-shield-halved text-lg w-5 text-center text-amber-500"></i>
+                <span class="whitespace-nowrap">Seguridad & Dosis</span>
+            </button>
+
+            <button onclick="switchTab('semiologyTab')" id="btn-semiologyTab" class="tab-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl font-medium text-sm transition text-left text-slate-600 hover:bg-slate-50 hover:text-slate-900">
+                <i class="fa-solid fa-user-doctor text-lg w-5 text-center text-rose-500"></i>
+                <span class="whitespace-nowrap">Maniobras Semiológicas</span>
+            </button>
+        </nav>
+
+        <!-- Main Content Area -->
+        <main class="flex-1 bg-white border border-slate-200 rounded-2xl shadow-sm flex flex-col overflow-hidden relative">
+
+            <!-- ========================================== -->
+            <!-- TAB 1: OPTIMIZADOR DE PRESCRIPCIONES -->
+            <!-- ========================================== -->
+            <div id="medsTab" class="tab-content flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-5">
+                <!-- Header Title -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-slate-100 pb-3">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-wand-magic-sparkles text-sky-600"></i> Optimizador de Prescripciones
+                        </h2>
+                        <p class="text-xs text-slate-500">Extrae fármacos de una o múltiples capturas de pantalla, elimina duplicados/errores de sistema y genera la redacción para tu HC.</p>
+                    </div>
+                </div>
+
+                <!-- Input Section: Drag Drop / Screenshot primary -->
+                <div class="space-y-3">
+                    <div id="imageDropzone" class="border-2 border-dashed border-sky-200 hover:border-sky-400 rounded-2xl p-5 flex flex-col items-center justify-center bg-sky-50/30 hover:bg-sky-50/80 transition cursor-pointer relative min-h-[140px] text-center group">
+                        <input type="file" id="medImageInput" accept="image/*" multiple class="absolute inset-0 opacity-0 cursor-pointer" onchange="handleImageSelect(event)">
+                        
+                        <div id="dropzonePrompt" class="space-y-2">
+                            <div class="w-12 h-12 rounded-2xl bg-white text-sky-600 flex items-center justify-center mx-auto shadow-sm group-hover:scale-105 transition border border-sky-100">
+                                <i class="fa-solid fa-images text-2xl"></i>
+                            </div>
+                            <div>
+                                <p class="text-sm font-semibold text-slate-800">Haz clic aquí para subir o arrastra una o VARIAS capturas de la receta</p>
+                                <p class="text-xs text-slate-500 mt-1">Puedes seleccionar múltiples archivos o pegar imágenes continuamente con <kbd class="px-2 py-0.5 bg-slate-200 text-slate-800 rounded font-mono text-[11px] font-bold">Ctrl + V</kbd></p>
+                            </div>
+                        </div>
+
+                        <!-- Image Preview Container (Multi-image grid) -->
+                        <div id="imagePreviewContainer" class="hidden relative w-full flex flex-col items-center justify-center space-y-3 z-10">
+                            <div id="imagePreviewGrid" class="flex flex-wrap gap-3 justify-center items-center w-full">
+                                <!-- Thumbnails populated dynamically -->
+                            </div>
+                            <div class="flex items-center gap-3">
+                                <button type="button" onclick="clearAllImages(event)" class="text-xs text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1 bg-white px-3 py-1.5 rounded-lg shadow border border-slate-200">
+                                    <i class="fa-solid fa-trash"></i> Eliminar todas
+                                </button>
+                                <span class="text-xs text-slate-600 font-semibold bg-sky-100 border border-sky-200 px-2.5 py-1 rounded-lg" id="imageCountBadge">0 capturas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Collapsible Text Input Alternative -->
+                    <div>
+                        <button type="button" onclick="toggleTextInput()" class="text-xs text-slate-500 hover:text-sky-600 font-medium flex items-center gap-1.5 transition">
+                            <i id="textInputIcon" class="fa-solid fa-chevron-right text-[10px]"></i>
+                            <span>¿Prefieres escribir o pegar texto sin imagen?</span>
+                        </button>
+                        <div id="textInputContainer" class="hidden mt-2">
+                            <textarea id="rawMedsText" rows="3" class="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-sky-500 outline-none resize-none bg-slate-50" placeholder="Ejemplo: losartan potasico 50mg tomar 1 tab cada 12 horas x 3 meses&#10;carvedilol 12.5mg tomar 1 tab cada 12 horas..."></textarea>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Process Button -->
+                <div class="flex justify-center pt-1">
+                    <button id="processMedsBtn" onclick="processMedications()" class="bg-gradient-to-r from-sky-600 to-indigo-600 hover:from-sky-700 hover:to-indigo-700 text-white font-semibold px-8 py-3 rounded-xl shadow-lg shadow-sky-600/25 hover:shadow-sky-600/40 transition flex items-center gap-2.5 text-sm">
+                        <i class="fa-solid fa-bolt text-amber-300"></i> Extraer y Analizar Prescripción
+                    </button>
+                </div>
+
+                <!-- Quick Format Tuning Options (Clean 1-Click Chips) -->
+                <div class="bg-slate-50 border border-slate-200/80 rounded-xl p-3.5 space-y-2.5">
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-bold uppercase tracking-wider text-slate-600 flex items-center gap-1.5">
+                            <i class="fa-solid fa-sliders text-sky-600"></i> Ajustes Rápido de Formato de Salida
+                        </span>
+                    </div>
+
+                    <div class="flex flex-wrap items-center gap-2 text-xs">
+                        <!-- Presets -->
+                        <button type="button" onclick="setPreset('standard')" id="btn-preset-standard" class="preset-chip px-3 py-1.5 rounded-lg border bg-sky-600 text-white border-sky-600 font-medium transition">
+                            Estándar Completo (V.O. + 1 TAB.)
+                        </button>
+                        <button type="button" onclick="setPreset('compact')" id="btn-preset-compact" class="preset-chip px-3 py-1.5 rounded-lg border bg-white text-slate-700 border-slate-300 font-medium hover:bg-slate-100 transition">
+                            Compacto (Sin V.O. / Unidades)
+                        </button>
+
+                        <div class="h-4 w-px bg-slate-300 mx-1 hidden sm:block"></div>
+
+                        <!-- Toggle Controls -->
+                        <label class="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100 transition">
+                            <input type="checkbox" id="cfgIncludeMeals" checked onchange="reformatOutput()" class="rounded text-sky-600 focus:ring-sky-500">
+                            <span class="text-slate-700 font-medium">Incluir momentos (Almuerzo / Noche)</span>
+                        </label>
+
+                        <label class="inline-flex items-center gap-1.5 bg-white border border-slate-200 px-2.5 py-1.5 rounded-lg cursor-pointer hover:bg-slate-100 transition">
+                            <input type="checkbox" id="cfgDeduplicate" checked onchange="reformatOutput()" class="rounded text-sky-600 focus:ring-sky-500">
+                            <span class="text-slate-700 font-medium">Auto-depurar duplicados</span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- RESULT OUTPUT CONTAINER (Dual View: Detailed Summary + EMR Copy Text) -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+                    
+                    <!-- BLOQUE 1: Visualización y Resumen Rápido -->
+                    <div class="flex flex-col border border-slate-200 rounded-xl p-4 bg-slate-50/50 space-y-3">
+                        <div class="flex items-center justify-between border-b border-slate-200 pb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-sky-800 flex items-center gap-2">
+                                <i class="fa-solid fa-list-check text-sky-600"></i> Visualización Rápida de la Prescripción
+                            </span>
+                            <span class="text-[10px] bg-sky-100 text-sky-700 px-2 py-0.5 rounded-full font-semibold">Lectura médica</span>
+                        </div>
+                        
+                        <div id="visualSummaryBox" class="flex-1 text-xs text-slate-700 leading-relaxed overflow-y-auto custom-scrollbar space-y-2 font-sans">
+                            <p class="text-slate-400 italic">Al cargar una captura o texto, aquí se mostrará el desglose claro punto por punto para tu revisión...</p>
+                        </div>
+                    </div>
+
+                    <!-- BLOQUE 2: Texto Listo para Historia Clínica -->
+                    <div class="flex flex-col border border-slate-800 rounded-xl p-4 bg-slate-900 space-y-3 relative">
+                        <div class="flex items-center justify-between border-b border-slate-800 pb-2">
+                            <span class="text-xs font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+                                <i class="fa-solid fa-file-signature"></i> Texto para Historia Clínica
+                            </span>
+                            <button type="button" onclick="copyFormattedText()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-semibold px-3 py-1 rounded-lg shadow transition flex items-center gap-1.5">
+                                <i class="fa-solid fa-copy"></i> <span id="copyBtnText">Copiar al Portapapeles</span>
+                            </button>
+                        </div>
+
+                        <textarea id="formattedResult" readonly class="w-full flex-1 p-2 font-mono text-xs bg-slate-900 text-emerald-300 outline-none resize-none leading-relaxed custom-scrollbar border-0" placeholder="El texto en bloque continuo aparecerá listo para pegar directo en la Historia Clínica..."></textarea>
+
+                        <!-- Loading Overlay -->
+                        <div id="medsLoader" class="hidden absolute inset-0 bg-slate-900/90 backdrop-blur-sm rounded-xl flex flex-col items-center justify-center text-white space-y-3 z-10">
+                            <div class="w-8 h-8 border-4 border-sky-400 border-t-transparent rounded-full animate-spin"></div>
+                            <p class="text-xs font-medium text-sky-200">Analizando captura de receta con IA...</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 2: EKG Y PARACLÍNICOS -->
+            <!-- ========================================== -->
+            <div id="paraclinicalsTab" class="tab-content hidden flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
+                <div class="border-b border-slate-100 pb-4">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-heart-pulse text-emerald-600"></i> Síntesis de Electrocardiogramas y Laboratorios
+                    </h2>
+                    <p class="text-xs text-slate-500">Convierte reportes complejos de paraclínicos (EKG, Uroanálisis, Química) en síntesis clínicas breves para HC.</p>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <div class="space-y-3">
+                        <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Pega el reporte de EKG, Uroanálisis o Laboratorio</label>
+                        <textarea id="paraclinicalInput" rows="8" class="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-emerald-500 outline-none resize-none bg-slate-50/30" placeholder="Ejemplo Reporte EKG: Ritmo sinusal, FC 75 lpm, eje QRS en +30°, intervalo PR 0.16s, QRS 0.08s, QT 380ms, no alteraciones del ST-T.&#10;O Uroanálisis: Leucocitos 25/campo, nitritos POSITIVOS, bacterias ++..."></textarea>
+
+                        <button onclick="analyzeParaclinical()" class="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 rounded-xl shadow transition flex items-center justify-center gap-2 text-sm">
+                            <i class="fa-solid fa-microscope"></i> Sintetizar Paraclínico
+                        </button>
+                    </div>
+
+                    <div class="space-y-3 flex flex-col">
+                        <div class="flex items-center justify-between">
+                            <label class="block text-xs font-bold uppercase tracking-wider text-slate-700">Resumen Conciso para HC</label>
+                            <button onclick="copyToClipboard('paraclinicalResult')" class="text-xs bg-slate-800 hover:bg-slate-700 text-slate-200 px-3 py-1.5 rounded-lg transition flex items-center gap-1">
+                                <i class="fa-solid fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <textarea id="paraclinicalResult" readonly class="w-full flex-1 p-3 font-mono text-xs bg-slate-900 text-sky-300 rounded-xl border border-slate-800 outline-none resize-none leading-relaxed" placeholder="El análisis de laboratorio o EKG aparecerá en este bloque..."></textarea>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 3: BUSCADOR CIE-10 -->
+            <!-- ========================================== -->
+            <div id="cie10Tab" class="tab-content hidden flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
+                <div class="border-b border-slate-100 pb-4">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass-chart text-indigo-600"></i> Buscador Predictivo de Códigos CIE-10
+                    </h2>
+                    <p class="text-xs text-slate-500">Encuentra al instante los códigos diagnósticos estándar CIE-10 escribiendo términos clínicos coloquiales o técnicos.</p>
+                </div>
+
+                <div class="flex gap-2">
+                    <input type="text" id="cieSearchInput" onkeyup="if(event.key === 'Enter') searchCIE10()" class="flex-1 border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Escribe el diagnóstico (ej. Hipertensión primaria, Diabetes tipo 2, Infección urinaria, ERC stage 3)...">
+                    <button onclick="searchCIE10()" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium px-5 py-2.5 rounded-xl transition text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-magnifying-glass"></i> Buscar
+                    </button>
+                </div>
+
+                <div id="cieResultsContainer" class="grid grid-cols-1 md:grid-cols-2 gap-3 pt-2">
+                    <div class="p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-200 transition cursor-pointer" onclick="copyCIE('I10X', 'HIPERTENSION ESENCIAL (PRIMARIA)')">
+                        <span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-bold font-mono px-2 py-0.5 rounded mr-2">I10X</span>
+                        <span class="text-xs font-semibold text-slate-800">Hipertensión Esencial (Primaria)</span>
+                    </div>
+                    <div class="p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-200 transition cursor-pointer" onclick="copyCIE('E119', 'DIABETES MELLITUS TIPO 2 SIN COMPLICACIONES')">
+                        <span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-bold font-mono px-2 py-0.5 rounded mr-2">E119</span>
+                        <span class="text-xs font-semibold text-slate-800">Diabetes Mellitus Tipo 2 sin Complicaciones</span>
+                    </div>
+                    <div class="p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-200 transition cursor-pointer" onclick="copyCIE('N189', 'ENFERMEDAD RENAL CRONICA, NO ESPECIFICADA')">
+                        <span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-bold font-mono px-2 py-0.5 rounded mr-2">N189</span>
+                        <span class="text-xs font-semibold text-slate-800">Enfermedad Renal Crónica, no Especificada</span>
+                    </div>
+                    <div class="p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-200 transition cursor-pointer" onclick="copyCIE('E785', 'HIPERLIPIDEMIA NO ESPECIFICADA')">
+                        <span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-bold font-mono px-2 py-0.5 rounded mr-2">E785</span>
+                        <span class="text-xs font-semibold text-slate-800">Hiperlipidemia no Especificada</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 4: SEGURIDAD Y DOSIFICACIÓN -->
+            <!-- ========================================== -->
+            <div id="interactionsTab" class="tab-content hidden flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-6">
+                <div class="border-b border-slate-100 pb-4">
+                    <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                        <i class="fa-solid fa-shield-halved text-amber-500"></i> Verificador de Interacciones y Dosis
+                    </h2>
+                    <p class="text-xs text-slate-500">Analiza combinaciones farmacológicas complejas, riesgo de hipotensión, hiperkalemia o duplicidad terapéutica.</p>
+                </div>
+
+                <div class="space-y-3">
+                    <label class="block text-xs font-semibold uppercase tracking-wider text-slate-500">Pega la lista de fármacos actuales del paciente</label>
+                    <textarea id="interactionMedsInput" rows="4" class="w-full text-xs font-mono p-3 rounded-xl border border-slate-300 focus:ring-2 focus:ring-amber-500 outline-none resize-none bg-slate-50/30" placeholder="Ejemplo: Losartán 50mg c/12h, Enalapril 20mg c/12h, Spironolactona 25mg/día, Empagliflozina 25mg/día..."></textarea>
+
+                    <button onclick="checkInteractions()" class="bg-amber-500 hover:bg-amber-600 text-white font-semibold px-5 py-2.5 rounded-xl shadow transition text-sm flex items-center gap-2">
+                        <i class="fa-solid fa-triangle-exclamation"></i> Evaluar Seguridad Farmacológica
+                    </button>
+                </div>
+
+                <div id="interactionResults" class="p-4 rounded-xl border border-slate-200 bg-slate-50 text-xs leading-relaxed space-y-2">
+                    <p class="text-slate-400 italic">Los hallazgos sobre interacciones y precauciones aparecerán aquí...</p>
+                </div>
+            </div>
+
+            <!-- ========================================== -->
+            <!-- TAB 5: GUÍA PRÁCTICA DE MANIOBRAS SEMIOLÓGICAS (CONSULTA EXTERNA) -->
+            <!-- ========================================== -->
+            <div id="semiologyTab" class="tab-content hidden flex-1 flex flex-col p-4 sm:p-6 overflow-y-auto custom-scrollbar space-y-5">
+                <div class="border-b border-slate-100 pb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                    <div>
+                        <h2 class="text-xl font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-user-doctor text-rose-600"></i> Maniobras Semiológicas de Consulta Externa
+                        </h2>
+                        <p class="text-xs text-slate-500">Guía práctica de exploración física en medicina general con texto formateado listo para copiar a la Historia Clínica.</p>
+                    </div>
+                </div>
+
+                <div class="flex gap-2">
+                    <input type="text" id="semiologySearch" onkeyup="filterManeuvers()" class="flex-1 border border-slate-300 rounded-xl px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-rose-500" placeholder="Buscar maniobra (ej. Lasègue, Murphy, Giordano, McBurney, Tinel, Hawkins)...">
+                </div>
+
+                <div id="maneuversGrid" class="grid grid-cols-1 lg:grid-cols-2 gap-4 flex-1">
+                    <!-- Populated dynamically via JS -->
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="hidden fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-2xl border border-slate-100 space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-100 pb-3">
+                <h3 class="font-bold text-slate-800 flex items-center gap-2">
+                    <i class="fa-solid fa-sliders text-sky-600"></i> Configuración del Sistema
+                </h3>
+                <button onclick="toggleModal('settingsModal')" class="text-slate-400 hover:text-slate-600">
+                    <i class="fa-solid fa-xmark text-lg"></i>
+                </button>
+            </div>
+
+            <div class="space-y-3 text-xs">
+                <div>
+                    <label class="block font-semibold text-slate-700 mb-1">Clave de API Gemini (Opcional):</label>
+                    <input type="password" id="apiKeyInput" class="w-full border border-slate-300 rounded-lg p-2 font-mono outline-none focus:ring-2 focus:ring-sky-500" placeholder="Dejar en blanco para usar la clave por defecto del entorno">
+                    <p class="text-[10px] text-slate-400 mt-1">Si cuentas con tu propia clave de Google AI Studio, puedes ingresarla aquí.</p>
+                </div>
+            </div>
+
+            <div class="flex justify-end pt-2">
+                <button onclick="toggleModal('settingsModal')" class="bg-sky-600 text-white font-medium px-4 py-2 rounded-xl text-xs hover:bg-sky-700 transition">
+                    Guardar y Cerrar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // GLOBAL STATE & CONSTANTS
+        // ==========================================
+        let currentExtractedMeds = []; // Structured list of extracted medications
+        let currentPresetStyle = 'standard'; // 'standard' or 'compact'
+        let selectedImageFiles = []; // Array to store multiple uploaded screenshot files
+
+        // Frequent Outpatient General Medicine Maneuvers Database
+        const MANEUVERS_DB = [
+            {
+                name: "Signo / Test de Lasègue",
+                system: "Osteomuscular / Lumbalgia",
+                technique: "Paciente en decúbito supino. Se eleva pasivamente la pierna extendida por el talón.",
+                interpretation: "POSITIVO: Desencadena dolor radicular a lo largo del nervio ciático antes de los 60° (sugiere hernia discal L4-S1). NEGATIVO: Sin dolor radicular al elevar.",
+                emrSnippet: "Región lumbosacra sin deformidades. Signo de Lasègue positivo derecho a 45° con irradiación a dermatoma L5."
+            },
+            {
+                name: "Signo de Bragard",
+                system: "Osteomuscular / Lumbalgia",
+                technique: "Tras obtener Lasègue positivo, se desciende levemente la pierna hasta ceder el dolor y se realiza dorsiflexión pasiva del pie.",
+                interpretation: "POSITIVO: Reaparición del dolor agudo radicular. Confirma compresión radicular neurógena diferencial de origen muscular.",
+                emrSnippet: "Prueba de Bragard positiva derecha (confirma origen neurógeno radicular)."
+            },
+            {
+                name: "Signo de Murphy",
+                system: "Gastrointestinal / Abdomen",
+                technique: "Palpación profunda en el hipocondrio derecho bajo el reborde costal mientras el paciente realiza una inspiración profunda.",
+                interpretation: "POSITIVO: Cese brusco de la inspiración por dolor agudo al chocar la vesícula inflamada (Colecistitis Aguda). NEGATIVO: Inspiración profunda completa sin dolor.",
+                emrSnippet: "Abdomen blando, depresible, no doloroso a la palpación. Signo de Murphy negativo."
+            },
+            {
+                name: "Signos de Blumberg & Punto de McBurney",
+                system: "Gastrointestinal / Abdomen Agudo",
+                technique: "Presión sobre el punto medio entre ombligo y espina ilíaca anterosuperior derecha, seguido de descompresión brusca.",
+                interpretation: "POSITIVO: Dolor agudo e intenso a la descompresión (irritación peritoneal / Apendicitis Aguda). NEGATIVO: Sin dolor al desabrochar la presión.",
+                emrSnippet: "Fosa ilíaca derecha sin dolor a la palpación profunda, signo de Blumberg negativo, no signos de irritación peritoneal."
+            },
+            {
+                name: "Puño Percusión de Giordano",
+                system: "Urología / Nefrología",
+                technique: "Percusión suave con el borde cubital de la mano sobre las fosas lumbares a nivel de los ángulos costovertebrales.",
+                interpretation: "POSITIVO: Expresión viva de dolor y sobresalto del paciente (sugestivo de Pielonefritis Aguda o Litiasis Renal).",
+                emrSnippet: "Fosas lumbares simétricas, puño percusión de Giordano negativa bilateral."
+            },
+            {
+                name: "Test de Phalen & Signo de Tinel",
+                system: "Osteomuscular / Miembro Superior",
+                technique: "Phalen: Flexión palmar máxima de ambas muñecas enfrentadas durante 60s. Tinel: Percusión suave sobre el retináculo flexor de la muñeca.",
+                interpretation: "POSITIVO: Parestesias o adormecimiento en territorio del nervio mediano (1er a 3er dedo). Típico de Síndrome de Túnel Carpiano.",
+                emrSnippet: "Muñeca derecha con prueba de Phalen positiva a los 30 segundos y signo de Tinel positivo sobre nervio mediano."
+            },
+            {
+                name: "Test de Hawkins-Kennedy",
+                system: "Osteomuscular / Hombro Doloroso",
+                technique: "Flexión de hombro a 90° y codo a 90°, realizando rotación interna forzada del brazo.",
+                interpretation: "POSITIVO: Dolor en la cara anterolateral del hombro por pinzamiento subacromial (manguito rotador / supraespinoso).",
+                emrSnippet: "Hombro derecho con arcos de movimiento conservados, prueba de Hawkins-Kennedy positiva para pinzamiento subacromial."
+            },
+            {
+                name: "Maniobra de Valsalva",
+                system: "Cardiovascular / Neurología",
+                technique: "Esfuerzo espiratorio forzado contra la glotis cerrada durante 10 a 15 segundos.",
+                interpretation: "Evalúa soplos cardíacos (aumenta el de miocardiopatía hipertrófica) y exacerbación de dolor en radiculopatías cervicales/lumbares.",
+                emrSnippet: "Exploración de columna cervical sin dolor a las maniobras de carga; Valsalva negativo para radiculopatía."
+            }
+        ];
+
+        document.addEventListener('DOMContentLoaded', () => {
+            renderManeuvers(MANEUVERS_DB);
+            setupDragAndDrop();
+            setupPasteListener();
+        });
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+            document.querySelectorAll('.tab-btn').forEach(btn => {
+                btn.classList.remove('active', 'text-sky-700', 'bg-sky-50', 'border-sky-100', 'shadow-sm');
+                btn.classList.add('text-slate-600');
+            });
+
+            document.getElementById(tabId).classList.remove('hidden');
+            const activeBtn = document.getElementById(`btn-${tabId}`);
+            if (activeBtn) {
+                activeBtn.classList.add('active', 'text-sky-700', 'bg-sky-50', 'border-sky-100', 'shadow-sm');
+            }
+        }
+
+        function toggleModal(modalId) {
+            const modal = document.getElementById(modalId);
+            modal.classList.toggle('hidden');
+        }
+
+        function toggleTextInput() {
+            const container = document.getElementById('textInputContainer');
+            const icon = document.getElementById('textInputIcon');
+            container.classList.toggle('hidden');
+            if (container.classList.contains('hidden')) {
+                icon.className = "fa-solid fa-chevron-right text-[10px]";
+            } else {
+                icon.className = "fa-solid fa-chevron-down text-[10px]";
+            }
+        }
+
+        function setupDragAndDrop() {
+            const zone = document.getElementById('imageDropzone');
+            ['dragenter', 'dragover'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    zone.classList.add('drop-zone--over');
+                }, false);
+            });
+
+            ['dragleave', 'drop'].forEach(eventName => {
+                zone.addEventListener(eventName, (e) => {
+                    e.preventDefault();
+                    zone.classList.remove('drop-zone--over');
+                }, false);
+            });
+
+            zone.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    addFilesToSelection(files);
+                }
+            });
+        }
+
+        function setupPasteListener() {
+            window.addEventListener('paste', (e) => {
+                const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+                const pastedFiles = [];
+                for (let item of items) {
+                    if (item.kind === 'file' && item.type.startsWith('image/')) {
+                        pastedFiles.push(item.getAsFile());
+                    }
+                }
+                if (pastedFiles.length > 0) {
+                    addFilesToSelection(pastedFiles);
+                }
+            });
+        }
+
+        function handleImageSelect(event) {
+            if (event.target.files && event.target.files.length > 0) {
+                addFilesToSelection(event.target.files);
+                event.target.value = '';
+            }
+        }
+
+        function addFilesToSelection(files) {
+            for (let i = 0; i < files.length; i++) {
+                if (files[i].type.startsWith('image/')) {
+                    selectedImageFiles.push(files[i]);
+                }
+            }
+            renderImagePreviews();
+        }
+
+        function removeImageAtIndex(index, event) {
+            if (event) event.stopPropagation();
+            selectedImageFiles.splice(index, 1);
+            renderImagePreviews();
+        }
+
+        function clearAllImages(event) {
+            if (event) event.stopPropagation();
+            selectedImageFiles = [];
+            document.getElementById('medImageInput').value = '';
+            renderImagePreviews();
+        }
+
+        function renderImagePreviews() {
+            const container = document.getElementById('imagePreviewContainer');
+            const prompt = document.getElementById('dropzonePrompt');
+            const grid = document.getElementById('imagePreviewGrid');
+            const badge = document.getElementById('imageCountBadge');
+
+            if (selectedImageFiles.length === 0) {
+                container.classList.add('hidden');
+                prompt.classList.remove('hidden');
+                grid.innerHTML = '';
+                return;
+            }
+
+            prompt.classList.add('hidden');
+            container.classList.remove('hidden');
+            grid.innerHTML = '';
+
+            badge.textContent = `${selectedImageFiles.length} captura(s) lista(s)`;
+
+            selectedImageFiles.forEach((file, idx) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const card = document.createElement('div');
+                    card.className = 'relative group/card bg-white p-1 rounded-xl shadow-sm border border-slate-200';
+                    card.innerHTML = `
+                        <img src="${e.target.result}" class="h-20 w-auto max-w-[150px] object-cover rounded-lg border border-slate-100">
+                        <button type="button" onclick="removeImageAtIndex(${idx}, event)" class="absolute -top-2 -right-2 bg-rose-600 hover:bg-rose-700 text-white w-5 h-5 rounded-full flex items-center justify-center text-[10px] shadow transition" title="Eliminar captura">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    `;
+                    grid.appendChild(card);
+                };
+                reader.readAsDataURL(file);
+            });
+        }
+
+        async function processMedications() {
+            const rawText = document.getElementById('rawMedsText').value.trim();
+            const loader = document.getElementById('medsLoader');
+
+            if (selectedImageFiles.length === 0 && !rawText) {
+                showToast("Por favor sube una o varias capturas de la receta o escribe el texto.");
+                return;
+            }
+
+            loader.classList.remove('hidden');
+
+            try {
+                const apiKey = document.getElementById('apiKeyInput').value.trim() || "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                let promptText = `Eres un asistente médico experto en prescripción farmacológica.
+Extrae la lista completa y unificada de medicamentos de las capturas de pantalla o texto provisto (pueden ser múltiples imágenes que complementan la misma receta del paciente).
+Instrucciones críticas:
+1. Revisa si hay anomalías en la vía de administración del sistema (ejemplo: si dice estatina u aspirina por vía "Tópica", corrígelo a "Oral").
+2. Si un medicamento aparece duplicado exacto entre las imágenes, consolídalo en un solo registro.
+3. Retorna ÚNICAMENTE un JSON válido con esta estructura:
+{
+  "medications": [
+    {
+      "name": "Nombre completo del fármaco (ej. Losartán potásico, Atorvastatina)",
+      "dose": "Dosis y concentración (ej. 50 mg, 12.5 mg, 10/1000 mg, 300 UI/mL)",
+      "quantity": 90,
+      "unitType": "tableta" | "cápsula" | "ampolla",
+      "frequency": "cada 12 horas" | "cada 24 horas" | "diaria",
+      "dosePerTake": "1" | "2" | "26 unidades",
+      "route": "V.O." | "S.C.",
+      "instructions": "instrucción específica como EN AYUNAS, CON EL DESAYUNO, EN LA NOCHE o vacío",
+      "durationMonths": "3 MESES"
+    }
+  ]
+}`;
+
+                let contentsPart = [{ text: promptText }];
+
+                if (selectedImageFiles.length > 0) {
+                    for (const file of selectedImageFiles) {
+                        const base64Data = await fileToBase64(file);
+                        contentsPart.push({
+                            inlineData: {
+                                mimeType: file.type || 'image/png',
+                                data: base64Data
+                            }
+                        });
+                    }
+                    if (rawText) {
+                        contentsPart.push({ text: `Notas/Texto adicional del médico:\n${rawText}` });
+                    }
+                } else {
+                    contentsPart.push({ text: `Texto provisto:\n${rawText}` });
+                }
+
+                const payload = {
+                    contents: [{ role: "user", parts: contentsPart }],
+                    generationConfig: { responseMimeType: "application/json" }
+                };
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+
+                const result = await response.json();
+                const jsonText = result.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (jsonText) {
+                    const parsed = JSON.parse(jsonText);
+                    currentExtractedMeds = parsed.medications || [];
+                    reformatOutput();
+                } else {
+                    showToast("No se pudo extraer el listado. Revisa la imagen o texto.");
+                }
+
+            } catch (err) {
+                console.error(err);
+                showToast("Ocurrió un error al procesar con IA. Verifica tu conexión o API Key.");
+            } finally {
+                loader.classList.add('hidden');
+            }
+        }
+
+        function reformatOutput() {
+            if (!currentExtractedMeds || currentExtractedMeds.length === 0) {
+                return;
+            }
+
+            const includeMeals = document.getElementById('cfgIncludeMeals').checked;
+            const deduplicate = document.getElementById('cfgDeduplicate').checked;
+
+            let processedList = [...currentExtractedMeds];
+
+            // Deduplication logic
+            if (deduplicate) {
+                const seen = new Set();
+                processedList = processedList.filter(med => {
+                    const key = `${med.name.toLowerCase().trim()}_${med.dose.toLowerCase().trim()}`;
+                    if (seen.has(key)) return false;
+                    seen.add(key);
+                    return true;
+                });
+            }
+
+            // 1. Render Visual Summary (Bulleted list for doctor review)
+            const summaryBox = document.getElementById('visualSummaryBox');
+            summaryBox.innerHTML = `<ul class="space-y-2">` + processedList.map(med => {
+                let routeText = med.route || "V.O.";
+                let mealText = (includeMeals && med.instructions) ? ` (${med.instructions.toLowerCase()})` : "";
+                return `<li class="flex items-start gap-1.5">
+                    <i class="fa-solid fa-angle-right text-sky-500 mt-0.5"></i>
+                    <div>
+                        <strong class="text-slate-900">${med.name} ${med.dose}:</strong> 
+                        <span>${med.dosePerTake || '1'} ${med.unitType || 'tableta'} ${routeText} ${med.frequency}${mealText}.</span>
+                    </div>
+                </li>`;
+            }).join('') + `</ul>`;
+
+            // 2. Render EMR Single Block String
+            const formattedItems = processedList.map(med => {
+                let name = med.name.toUpperCase().trim();
+                let dose = med.dose.toUpperCase().trim();
+                let dosePerTake = med.dosePerTake || "1";
+                let route = (med.route || "V.O.").toUpperCase();
+                let instructions = (includeMeals && med.instructions) ? med.instructions.toUpperCase() : "";
+
+                let unitStr = "TAB.";
+                if (med.unitType && med.unitType.toLowerCase().includes('cápsula')) unitStr = "CAP.";
+                if (med.unitType && med.unitType.toLowerCase().includes('ampolla')) unitStr = "UNIDADES";
+
+                let parts = [];
+                parts.push(`${name} ${dose}`);
+
+                if (currentPresetStyle === 'standard') {
+                    if (unitStr === 'UNIDADES') {
+                        parts.push(`${dosePerTake} UNIDADES ${route}`);
+                    } else {
+                        parts.push(`${dosePerTake} ${unitStr} ${route}`);
+                    }
+                }
+
+                if (med.frequency) parts.push(med.frequency.toUpperCase());
+                if (instructions) parts.push(instructions);
+
+                return parts.join(" ");
+            });
+
+            let finalEmrText = formattedItems.join(", ") + ".";
+            document.getElementById('formattedResult').value = finalEmrText;
+        }
+
+        function setPreset(style) {
+            currentPresetStyle = style;
+            document.querySelectorAll('.preset-chip').forEach(btn => {
+                btn.className = "preset-chip px-3 py-1.5 rounded-lg border bg-white text-slate-700 border-slate-300 font-medium hover:bg-slate-100 transition";
+            });
+            const activeBtn = document.getElementById(`btn-preset-${style}`);
+            if (activeBtn) {
+                activeBtn.className = "preset-chip px-3 py-1.5 rounded-lg border bg-sky-600 text-white border-sky-600 font-medium transition";
+            }
+            reformatOutput();
+        }
+
+        async function analyzeParaclinical() {
+            const input = document.getElementById('paraclinicalInput').value.trim();
+            const resultBox = document.getElementById('paraclinicalResult');
+
+            if (!input) {
+                showToast("Ingresa los datos del EKG o paraclínicos.");
+                return;
+            }
+
+            resultBox.value = "Sintetizando paraclínico con IA...";
+
+            try {
+                const apiKey = document.getElementById('apiKeyInput').value.trim() || "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const prompt = `Actúa como médico especialista. Genera una síntesis clínica breve, técnica y profesional en 2-4 líneas para la historia clínica a partir del siguiente reporte:
+${input}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                resultBox.value = text ? text.trim() : "No se pudo procesar el paraclínico.";
+            } catch (err) {
+                resultBox.value = "Error al conectar con la API.";
+            }
+        }
+
+        async function searchCIE10() {
+            const query = document.getElementById('cieSearchInput').value.trim();
+            const container = document.getElementById('cieResultsContainer');
+
+            if (!query) return;
+
+            container.innerHTML = `<p class="col-span-2 text-xs text-slate-500 italic">Buscando códigos CIE-10...</p>`;
+
+            try {
+                const apiKey = document.getElementById('apiKeyInput').value.trim() || "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const prompt = `Proporciona los 4 códigos CIE-10 más relevantes para la siguiente búsqueda clínica: "${query}". 
+Retorna JSON en este formato:
+{
+  "codes": [
+    {"code": "I10X", "description": "HIPERTENSION ESENCIAL (PRIMARIA)"}
+  ]
+}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: [{ parts: [{ text: prompt }] }],
+                        generationConfig: { responseMimeType: "application/json" }
+                    })
+                });
+
+                const data = await response.json();
+                const jsonText = data.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (jsonText) {
+                    const parsed = JSON.parse(jsonText);
+                    container.innerHTML = parsed.codes.map(c => `
+                        <div class="p-3 border border-slate-200 rounded-xl bg-slate-50 hover:bg-indigo-50/50 hover:border-indigo-200 transition cursor-pointer" onclick="copyCIE('${c.code}', '${c.description}')">
+                            <span class="inline-block bg-indigo-100 text-indigo-800 text-xs font-bold font-mono px-2 py-0.5 rounded mr-2">${c.code}</span>
+                            <span class="text-xs font-semibold text-slate-800">${c.description}</span>
+                        </div>
+                    `).join('');
+                }
+            } catch (err) {
+                container.innerHTML = `<p class="col-span-2 text-xs text-rose-500">Error al buscar códigos CIE-10.</p>`;
+            }
+        }
+
+        async function checkInteractions() {
+            const meds = document.getElementById('interactionMedsInput').value.trim();
+            const box = document.getElementById('interactionResults');
+
+            if (!meds) return;
+
+            box.innerHTML = `<p class="text-xs text-slate-500 italic">Analizando interacciones y seguridad farmacológica...</p>`;
+
+            try {
+                const apiKey = document.getElementById('apiKeyInput').value.trim() || "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-3-flash-preview:generateContent?key=${apiKey}`;
+
+                const prompt = `Analiza la lista de medicamentos para detectar:
+1. Interacciones severas o moderadas.
+2. Duplicidad terapéutica.
+3. Alertas sobre función renal o electrolitos.
+Sé conciso y claro.
+
+Fármacos: ${meds}`;
+
+                const response = await fetch(apiUrl, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
+                });
+
+                const data = await response.json();
+                const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
+                box.innerHTML = `<div class="prose prose-xs font-sans text-slate-700">${text.replace(/\n/g, '<br>')}</div>`;
+            } catch (err) {
+                box.innerHTML = `<p class="text-xs text-rose-500">Error al analizar interacciones.</p>`;
+            }
+        }
+
+        function renderManeuvers(items) {
+            const grid = document.getElementById('maneuversGrid');
+            grid.innerHTML = items.map(m => `
+                <div class="border border-slate-200 rounded-2xl p-4 bg-slate-50/70 hover:shadow-md transition space-y-3 flex flex-col justify-between">
+                    <div class="space-y-2">
+                        <div class="flex items-center justify-between">
+                            <h4 class="font-bold text-sm text-slate-900">${m.name}</h4>
+                            <span class="text-[10px] bg-rose-100 text-rose-800 font-semibold px-2.5 py-0.5 rounded-full">${m.system}</span>
+                        </div>
+                        <p class="text-xs text-slate-600"><strong class="text-slate-800">Técnica:</strong> ${m.technique}</p>
+                        <p class="text-xs text-slate-600"><strong class="text-slate-800">Interpretación:</strong> ${m.interpretation}</p>
+                    </div>
+
+                    <div class="bg-white border border-slate-200 rounded-xl p-2.5 space-y-1">
+                        <div class="flex items-center justify-between text-[10px] font-bold text-slate-500 uppercase">
+                            <span>Texto Sugerido para Historia Clínica:</span>
+                            <button onclick="copyToClipboardRaw('${m.emrSnippet.replace(/'/g, "\\'")}')" class="text-rose-600 hover:text-rose-800 font-semibold flex items-center gap-1">
+                                <i class="fa-solid fa-copy"></i> Copiar
+                            </button>
+                        </div>
+                        <p class="text-xs font-mono text-slate-700 bg-slate-50 p-1.5 rounded border border-slate-100">${m.emrSnippet}</p>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        function filterManeuvers() {
+            const query = document.getElementById('semiologySearch').value.toLowerCase();
+            const filtered = MANEUVERS_DB.filter(m => 
+                m.name.toLowerCase().includes(query) || 
+                m.system.toLowerCase().includes(query) || 
+                m.technique.toLowerCase().includes(query) ||
+                m.interpretation.toLowerCase().includes(query)
+            );
+            renderManeuvers(filtered);
+        }
+
+        // Copy Helper Functions
+        function copyFormattedText() {
+            const text = document.getElementById('formattedResult').value;
+            if (!text) return;
+
+            copyToClipboardRaw(text);
+
+            const btnText = document.getElementById('copyBtnText');
+            btnText.innerText = "¡Copiado!";
+            setTimeout(() => { btnText.innerText = "Copiar al Portapapeles"; }, 2000);
+        }
+
+        function copyCIE(code, desc) {
+            copyToClipboardRaw(`${code} - ${desc}`);
+            showToast(`CIE-10 ${code} copiado al portapapeles.`);
+        }
+
+        function copyToClipboard(elementId) {
+            const text = document.getElementById(elementId).value;
+            if (text) copyToClipboardRaw(text);
+        }
+
+        function copyToClipboardRaw(text) {
+            const textarea = document.createElement('textarea');
+            textarea.value = text;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand('copy');
+            document.body.removeChild(textarea);
+            showToast("Texto copiado al portapapeles.");
+        }
+
+        function fileToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve(reader.result.split(',')[1]);
+                reader.onerror = error => reject(error);
+            });
+        }
+
+        function showToast(msg) {
+            const toast = document.createElement('div');
+            toast.className = 'fixed bottom-5 right-5 bg-slate-900 text-white text-xs font-medium px-4 py-2.5 rounded-xl shadow-lg z-50 border border-slate-700 animate-bounce';
+            toast.innerText = msg;
+            document.body.appendChild(toast);
+            setTimeout(() => toast.remove(), 3000);
+        }
+    </script>
+</body>
+</html>
